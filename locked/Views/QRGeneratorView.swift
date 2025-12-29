@@ -12,6 +12,7 @@ struct QRGeneratorView: View {
     @State private var lockPointName: String = ""
     @State private var generatedQRImage: UIImage? = nil
     @State private var showQRCode: Bool = false
+    @State private var showScanner = false
     
     var body: some View {
         NavigationView {
@@ -63,6 +64,31 @@ struct QRGeneratorView: View {
                 .disabled(lockPointName.isEmpty)
                 .padding(.horizontal, 30)
                 
+                // Test Scanner Button (temporary - for testing)
+                Button(action: { showScanner = true }) {
+                    HStack {
+                        Image(systemName: "camera.viewfinder")
+                        Text("Test QR Scanner")
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                }
+                .padding(.horizontal, 30)
+                .sheet(isPresented: $showScanner) {
+                    QRScannerView { scannedCode in
+                        print("🎯 Scanned code: \(scannedCode)")
+                        
+                        // Extract and display the lock point ID
+                        if let lockPointID = QRCodeService.extractLockPointID(from: scannedCode) {
+                            print("🔐 Lock Point ID: \(lockPointID)")
+                        }
+                    }
+                }
+
                 // QR Code Display
                 if showQRCode, let qrImage = generatedQRImage {
                     VStack(spacing: 15) {
