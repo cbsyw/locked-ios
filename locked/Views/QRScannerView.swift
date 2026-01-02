@@ -218,6 +218,7 @@ struct CameraPreview: UIViewRepresentable {
             self.parent = parent
         }
         
+        
         func setupCamera(in view: UIView) {
             let session = AVCaptureSession()
             
@@ -254,18 +255,26 @@ struct CameraPreview: UIViewRepresentable {
                 return
             }
             
-            let previewLayer = AVCaptureVideoPreviewLayer(session: session)
-            previewLayer.frame = view.layer.bounds
-            previewLayer.videoGravity = .resizeAspectFill
-            view.layer.addSublayer(previewLayer)
-            
             self.captureSession = session
-            self.previewLayer = previewLayer
             
-            DispatchQueue.global(qos: .userInitiated).async {
-                session.startRunning()
+            // FIX: Setup preview layer on main thread
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                
+                let previewLayer = AVCaptureVideoPreviewLayer(session: session)
+                previewLayer.frame = view.bounds
+                previewLayer.videoGravity = .resizeAspectFill
+                view.layer.addSublayer(previewLayer)
+                
+                self.previewLayer = previewLayer
+                
+                // Start session on background thread
+                DispatchQueue.global(qos: .userInitiated).async {
+                    session.startRunning()
+                }
             }
         }
+        
         
         func startScanning() {
             if let session = captureSession, !session.isRunning {
