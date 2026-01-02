@@ -39,9 +39,15 @@ struct HomeView: View {
                         // Status Card
                         statusCard
                         
-                        // Lock Duration (if locked)
+                        // Timer Cards (if locked)
                         if lockService.lockStatus.isLocked {
-                            lockDurationCard
+                            VStack(spacing: 15) {
+                                currentSessionCard
+                                todayTotalCard
+                            }
+                        } else if lockService.todayTotalDuration > 0 {
+                            // Show today's total even when unlocked
+                            todayTotalCard
                         }
                         
                         // Action Buttons
@@ -113,27 +119,72 @@ struct HomeView: View {
         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
     }
     
-    // MARK: - Lock Duration Card
+    // MARK: - Current Session Card
     
-    private var lockDurationCard: some View {
+    private var currentSessionCard: some View {
         VStack(spacing: 10) {
-            Text("Locked for")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            
-            if let duration = lockService.getLockedDurationFormatted() {
-                Text(duration)
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
+            HStack {
+                Image(systemName: "timer")
+                    .foregroundColor(.orange)
+                Text("Current Session")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
             }
             
-            Text("Keep going! 💪")
+            Text(lockService.getCurrentSessionFormatted())
+                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .foregroundColor(.primary)
+                .monospacedDigit() // Makes numbers not jump around
+            
+            Text("Keep going! 🔥")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
         .padding()
         .frame(maxWidth: .infinity)
         .background(Color(.systemBackground))
+        .cornerRadius(15)
+        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+    }
+    
+    // MARK: - Today Total Card
+    
+    private var todayTotalCard: some View {
+        VStack(spacing: 10) {
+            HStack {
+                Image(systemName: "calendar")
+                    .foregroundColor(.blue)
+                Text("Today's Total")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
+            }
+            
+            Text(lockService.getTodayTotalFormatted())
+                .font(.system(size: 32, weight: .bold, design: .rounded))
+                .foregroundColor(.blue)
+                .monospacedDigit()
+            
+            if lockService.lockStatus.isLocked {
+                Text("Including current session")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            } else {
+                Text("Great work today! 💪")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(
+            LinearGradient(
+                colors: [Color.blue.opacity(0.1), Color.cyan.opacity(0.05)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
         .cornerRadius(15)
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
     }

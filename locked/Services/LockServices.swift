@@ -1,4 +1,3 @@
-
 //
 //  LockService.swift
 //  locked
@@ -15,37 +14,84 @@ class LockService: ObservableObject {
     
     @Published private(set) var lockStatus: LockStatus = .unlocked
     @Published private(set) var lockPoints: [LockPoint] = []
+    @Published private(set) var currentSessionDuration: TimeInterval = 0
+    @Published private(set) var todayTotalDuration: TimeInterval = 0
     
     private let lockStatusKey = "lockStatus"
     private let lockPointsKey = "lockPoints"
     private let lockedAtKey = "lockedAt"
     private let currentLockPointKey = "currentLockPoint"
+    private let todayTotalKey = "todayTotal"
+    private let lastDateKey = "lastDate"
+    
+    private var timer: Timer?
     
     private init() {
         loadLockStatus()
         loadLockPoints()
+        loadTodayTotal()
+        
+        // Start timer if locked
+        if lockStatus.isLocked {
+            startTimer()
+        }
+    }
+    
+    // MARK: - Timer Management
+    
+    private func startTimer() {
+        // Invalidate existing timer
+        timer?.invalidate()
+        
+        // Create new timer that fires every second
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            
+            if case .locked(_, let lockedAt) = self.lockStatus {
+                self.currentSessionDuration = Date().timeIntervalSince(lockedAt)
+                self.todayTotalDuration = self.getBaseTodayTotal() + self.currentSessionDuration
+            }
+        }
+        
+        // Ensure timer runs even when scrolling
+        RunLoop.current.add(timer!, forMode: .common)
+    }
+    
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
     }
     
     // MARK: - Lock/Unlock
     
     func lock(with lockPoint: LockPoint) {
-        lockStatus = .locked(lockPoint: lockPoint, lockedAt: Date())
+        let now = Date()
+        lockStatus = .locked(lockPoint: lockPoint, lockedAt: now)
+        currentSessionDuration = 0
         saveLockStatus()
+        startTimer()
         
         print("🔒 Locked with: \(lockPoint.name)")
     }
     
     func unlock(with qrCode: String) -> Bool {
-        guard case .locked(let lockPoint, _) = lockStatus else {
+        guard case .locked(let lockPoint, let lockedAt) = lockStatus else {
             print("⚠️ Already unlocked")
             return false
         }
         
         // Verify QR code matches the lock point
         if lockPoint.qrCode == qrCode {
+            // Save the session duration to today's total
+            let sessionDuration = Date().timeIntervalSince(lockedAt)
+            saveTodayTotal(additional: sessionDuration)
+            
             lockStatus = .unlocked
+            currentSessionDuration = 0
             saveLockStatus()
-            print("🔓 Unlocked successfully")
+            stopTimer()
+            
+            print("🔓 Unlocked successfully. Session: \(formatDuration(sessionDuration))")
             return true
         } else {
             print("❌ Wrong QR code")
@@ -54,8 +100,16 @@ class LockService: ObservableObject {
     }
     
     func forceUnlock() {
+        if case .locked(_, let lockedAt) = lockStatus {
+            let sessionDuration = Date().timeIntervalSince(lockedAt)
+            saveTodayTotal(additional: sessionDuration)
+        }
+        
         lockStatus = .unlocked
+        currentSessionDuration = 0
         saveLockStatus()
+        stopTimer()
+        
         print("🔓 Force unlocked")
     }
     
@@ -79,6 +133,54 @@ class LockService: ObservableObject {
     
     func getLockPoint(by qrCode: String) -> LockPoint? {
         return lockPoints.first { $0.qrCode == qrCode }
+    }
+    
+    // MARK: - Daily Total Management
+    
+    private func loadTodayTotal() {
+        let today = Calendar.current.startOfDay(for: Date())
+        
+        if let lastDate = UserDefaults.standard.object(forKey: lastDateKey) as? Date {
+            let lastDay = Calendar.current.startOfDay(for: lastDate)
+            
+            if today == lastDay {
+                // Same day - load existing total
+                todayTotalDuration = UserDefaults.standard.double(forKey: todayTotalKey)
+            } else {
+                // New day - reset
+                todayTotalDuration = 0
+                UserDefaults.standard.set(0, forKey: todayTotalKey)
+            }
+        }
+        
+        // Update last date
+        UserDefaults.standard.set(Date(), forKey: lastDateKey)
+    }
+    
+    private func getBaseTodayTotal() -> TimeInterval {
+        let today = Calendar.current.startOfDay(for: Date())
+        
+        if let lastDate = UserDefaults.standard.object(forKey: lastDateKey) as? Date {
+            let lastDay = Calendar.current.startOfDay(for: lastDate)
+            
+            if today == lastDay {
+                return UserDefaults.standard.double(forKey: todayTotalKey)
+            }
+        }
+        
+        return 0
+    }
+    
+    private func saveTodayTotal(additional: TimeInterval) {
+        let currentBase = getBaseTodayTotal()
+        let newTotal = currentBase + additional
+        
+        UserDefaults.standard.set(newTotal, forKey: todayTotalKey)
+        UserDefaults.standard.set(Date(), forKey: lastDateKey)
+        
+        todayTotalDuration = newTotal
+        
+        print("💾 Saved today's total: \(formatDuration(newTotal))")
     }
     
     // MARK: - Persistence
@@ -105,9 +207,11 @@ class LockService: ObservableObject {
            let lockPoint = try? JSONDecoder().decode(LockPoint.self, from: lockPointData),
            let lockedAt = UserDefaults.standard.object(forKey: lockedAtKey) as? Date {
             lockStatus = .locked(lockPoint: lockPoint, lockedAt: lockedAt)
+            currentSessionDuration = Date().timeIntervalSince(lockedAt)
             print("📱 Restored lock state: \(lockPoint.name)")
         } else {
             lockStatus = .unlocked
+            currentSessionDuration = 0
         }
     }
     
@@ -127,24 +231,23 @@ class LockService: ObservableObject {
     
     // MARK: - Helpers
     
-    func getLockedDuration() -> TimeInterval? {
-        guard let lockedAt = lockStatus.lockedAt else { return nil }
-        return Date().timeIntervalSince(lockedAt)
+    func getLockedDuration() -> TimeInterval {
+        return currentSessionDuration
     }
     
-    func getLockedDurationFormatted() -> String? {
-        guard let duration = getLockedDuration() else { return nil }
-        
+    func formatDuration(_ duration: TimeInterval) -> String {
         let hours = Int(duration) / 3600
         let minutes = Int(duration) / 60 % 60
         let seconds = Int(duration) % 60
         
-        if hours > 0 {
-            return String(format: "%dh %dm %ds", hours, minutes, seconds)
-        } else if minutes > 0 {
-            return String(format: "%dm %ds", minutes, seconds)
-        } else {
-            return String(format: "%ds", seconds)
-        }
+        return String(format: "%dh %dm %ds", hours, minutes, seconds)
+    }
+    
+    func getTodayTotalFormatted() -> String {
+        return formatDuration(todayTotalDuration)
+    }
+    
+    func getCurrentSessionFormatted() -> String {
+        return formatDuration(currentSessionDuration)
     }
 }
