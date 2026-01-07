@@ -9,9 +9,16 @@ import SwiftUI
 
 @main
 struct lockedApp: App {
+    @StateObject private var onboardingManager = OnboardingManager()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if onboardingManager.hasCompletedOnboarding {
+                ContentView()
+            } else {
+                OnboardingContainerView()
+                    .environmentObject(onboardingManager)
+            }
         }
     }
 }
