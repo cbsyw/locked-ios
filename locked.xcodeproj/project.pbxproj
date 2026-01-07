@@ -10,9 +10,22 @@
 		BADFBBF82F0227C900EAFEA0 /* locked.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = locked.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		BAA5E45E2F0761CA002CE58B /* Exceptions for "locked" folder in "locked" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BADFBBF72F0227C900EAFEA0 /* locked */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		BADFBBFA2F0227C900EAFEA0 /* locked */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				BAA5E45E2F0761CA002CE58B /* Exceptions for "locked" folder in "locked" target */,
+			);
 			path = locked;
 			sourceTree = "<group>";
 		};
@@ -255,6 +268,8 @@
 				DEVELOPMENT_TEAM = VLFWH5DYX2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = locked/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to scan QR codes for locking and unlocking your phone";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -265,7 +280,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = locked.locked;
+				PRODUCT_BUNDLE_IDENTIFIER = com.christianwarren.locked;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -288,6 +303,8 @@
 				DEVELOPMENT_TEAM = VLFWH5DYX2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = locked/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to scan QR codes for locking and unlocking your phone";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -298,7 +315,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = locked.locked;
+				PRODUCT_BUNDLE_IDENTIFIER = com.christianwarren.locked;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
